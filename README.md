@@ -52,15 +52,36 @@ docs/             design documents (13)
 ## Build & run
 
 ```powershell
-# core crates (no UI)
+# core crates (no UI) + unit tests
 cargo build
-
-# run the unit tests
 cargo test
 
-# full app (after `npm i -g @tauri-apps/cli` and `cd ui && npm i`)
-cd ui; npm run tauri dev
+# install UI deps once
+npm --prefix ui install
+
+# dev (hot-reload UI + native core)
+cd crates/nova-tauri; cargo tauri dev
 ```
+
+### Production build (installer + standalone exe)
+
+> ⚠️ Do **not** ship a plain `cargo build` of `nova-tauri`. Without the Tauri
+> CLI it is compiled in *dev* mode and tries to load the Vite dev server
+> (`http://localhost:5173`) at runtime — you'll get `ERR_CONNECTION_REFUSED`.
+> Always use `tauri build`, which embeds the frontend for a self-contained app.
+
+```powershell
+# 1. build the frontend bundle
+npm --prefix ui run build
+
+# 2. produce the production binary + NSIS installer
+cd crates/nova-tauri
+cargo tauri build
+```
+
+Outputs:
+- `target/release/nova-tauri.exe` — standalone, self-contained (UI embedded; needs the WebView2 runtime, preinstalled on Windows 11).
+- `target/release/bundle/nsis/NovaTerm_<ver>_x64-setup.exe` — installer that creates Start Menu + Desktop shortcuts.
 
 ## Documentation
 
