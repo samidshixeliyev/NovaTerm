@@ -25,6 +25,11 @@ export async function sendInput(session: SessionId, event: InputEvent): Promise<
   await invoke("send_input", { session, event });
 }
 
+/// Write already-encoded bytes (xterm.js `onData`) to the PTY.
+export async function writeText(session: SessionId, data: string): Promise<void> {
+  await invoke("write_text", { session, data });
+}
+
 export async function resizeSession(
   session: SessionId,
   cols: number,

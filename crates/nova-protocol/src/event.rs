@@ -9,7 +9,12 @@ use serde::{Deserialize, Serialize};
 pub enum CoreEvent {
     /// A session was successfully spawned and is ready for input.
     Spawned { session: SessionId, pid: u32 },
-    /// New frame for a session (the hot path event).
+    /// Raw PTY output for a session, base64-encoded. The hot path when rendering
+    /// with an external VT engine (xterm.js): the byte stream is shipped as-is
+    /// and the frontend parses/renders it.
+    Output { session: SessionId, base64: String },
+    /// New frame for a session (used by the built-in grid renderer; unused when
+    /// an external VT engine consumes `Output`).
     Frame(FrameDiff),
     /// The shell program changed the window/tab title (sanitized).
     TitleChanged { session: SessionId, title: String },

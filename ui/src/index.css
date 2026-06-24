@@ -2,6 +2,37 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Bundled CaskaydiaCove Nerd Font Mono — guarantees powerline/icon glyphs and
+   ligatures regardless of what's installed on the machine. */
+@font-face {
+  font-family: "CaskaydiaCove Nerd Font Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url("/fonts/CaskaydiaCoveNerdFontMono-Regular.ttf") format("truetype");
+}
+@font-face {
+  font-family: "CaskaydiaCove Nerd Font Mono";
+  font-style: normal;
+  font-weight: 700;
+  font-display: block;
+  src: url("/fonts/CaskaydiaCoveNerdFontMono-Bold.ttf") format("truetype");
+}
+@font-face {
+  font-family: "CaskaydiaCove Nerd Font Mono";
+  font-style: italic;
+  font-weight: 400;
+  font-display: block;
+  src: url("/fonts/CaskaydiaCoveNerdFontMono-Italic.ttf") format("truetype");
+}
+@font-face {
+  font-family: "CaskaydiaCove Nerd Font Mono";
+  font-style: italic;
+  font-weight: 700;
+  font-display: block;
+  src: url("/fonts/CaskaydiaCoveNerdFontMono-BoldItalic.ttf") format("truetype");
+}
+
 :root {
   /* Default theme tokens (Tokyo Night); overridden at runtime by themeStore. */
   --nova-bg: #1a1b26;

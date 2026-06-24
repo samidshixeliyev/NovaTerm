@@ -34,6 +34,12 @@ fn send_input(state: State<Core>, session: SessionId, event: InputEvent) -> Resu
     state.input(session, event).map_err(|e| e.to_string())
 }
 
+/// Write already-encoded bytes (xterm.js `onData`) directly to the PTY.
+#[tauri::command]
+fn write_text(state: State<Core>, session: SessionId, data: String) -> Result<(), String> {
+    state.write_text(session, &data).map_err(|e| e.to_string())
+}
+
 #[tauri::command]
 fn resize_session(
     state: State<Core>,
@@ -112,6 +118,7 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             spawn_session,
             send_input,
+            write_text,
             resize_session,
             close_session,
             request_full_frame,

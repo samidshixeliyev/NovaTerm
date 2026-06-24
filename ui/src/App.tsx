@@ -5,7 +5,7 @@ import { StatusBar } from "./components/StatusBar";
 import { TerminalView } from "./components/TerminalView";
 import { CommandPalette, type PaletteAction } from "./components/CommandPalette";
 import { closeSession, listThemes, onCoreEvent } from "./bridge";
-import { dispatchFrame } from "./frames";
+import { dispatchOutput } from "./sinks";
 import { applyThemeToCss, useStore } from "./store";
 
 export default function App() {
@@ -30,8 +30,8 @@ export default function App() {
 
     const unlistenPromise = onCoreEvent((ev) => {
       switch (ev.event) {
-        case "frame":
-          dispatchFrame(ev);
+        case "output":
+          dispatchOutput(ev.session, ev.base64);
           break;
         case "title_changed":
           useStore.getState().setTitle(ev.session, ev.title);
@@ -41,6 +41,9 @@ export default function App() {
           break;
         case "exited":
           useStore.getState().markExited(ev.session);
+          break;
+        case "error":
+          if (ev.message) useStore.getState().setToast(ev.message);
           break;
         default:
           break;
@@ -116,8 +119,28 @@ export default function App() {
           </div>
         ))}
         <CommandPalette actions={actions} />
+        <Toast />
       </div>
       <StatusBar />
+    </div>
+  );
+}
+
+function Toast() {
+  const toast = useStore((s) => s.toast);
+  const setToast = useStore((s) => s.setToast);
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 6000);
+    return () => clearTimeout(t);
+  }, [toast, setToast]);
+  if (!toast) return null;
+  return (
+    <div
+      className="absolute bottom-4 left-1/2 z-50 -translate-x-1/2 animate-fade-in cursor-pointer rounded-lg border border-red-500/40 bg-red-500/15 px-4 py-2 text-sm text-nova-fg shadow-xl backdrop-blur"
+      onClick={() => setToast(null)}
+    >
+      {toast}
     </div>
   );
 }

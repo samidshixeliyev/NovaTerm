@@ -1,11 +1,14 @@
-//! `nova-core` — session orchestration.
+//! `nova-core` — session orchestration / PTY pump.
 //!
 //! Owns the lifecycle of every terminal session: it spawns the ConPTY, runs a
-//! blocking *reader* thread and a frame-cadenced *processor* thread, feeds bytes
-//! through the [`nova_terminal::Terminal`] model, and broadcasts
-//! [`CoreEvent`]s (frames, title/cwd, bell, exit) that the UI layer forwards to
-//! the webview. Input from the UI is encoded by [`keymap`] and written back to
-//! the PTY.
+//! blocking *reader* thread and a *pump* thread that coalesces output and
+//! broadcasts it as base64 [`CoreEvent::Output`]. Rendering/VT parsing is done
+//! by the frontend's terminal engine (xterm.js); the core stays a fast, dumb
+//! byte pipe. Input bytes from the UI ([`Core::write_text`]) are written back to
+//! the PTY, and resizes are forwarded to the pseudoconsole.
+//!
+//! ([`keymap`] and [`Core::input`] remain for non-xterm consumers that want the
+//! core to encode keys itself.)
 
 #![forbid(unsafe_code)]
 
@@ -18,13 +21,13 @@ use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
+use base64::Engine;
 use crossbeam_channel::{bounded, Receiver, Sender};
 use parking_lot::Mutex;
 
 use nova_config::Config;
 use nova_protocol::{CoreEvent, InputEvent, ResizeEvent, SessionId, SpawnParams};
 use nova_pty::{CommandBuilder, Pty, PtySize};
-use nova_terminal::{TermEvent, Terminal};
 use thiserror::Error;
 use tokio::sync::broadcast;
 
@@ -40,11 +43,9 @@ pub enum CoreError {
 
 pub type Result<T> = std::result::Result<T, CoreError>;
 
-/// Control messages sent to a session's processor thread.
+/// Control messages sent to a session's pump thread.
 enum Msg {
     Bytes(Vec<u8>),
-    Resize { cols: u16, rows: u16 },
-    RequestFull,
     Eof,
     Shutdown,
 }
@@ -54,8 +55,6 @@ struct Session {
     writer: Arc<Mutex<Box<dyn Write + Send>>>,
     to_proc: Sender<Msg>,
     app_cursor: Arc<AtomicBool>,
-    cols: u16,
-    rows: u16,
 }
 
 struct CoreInner {
@@ -155,25 +154,17 @@ impl Core {
                 .expect("spawn reader thread");
         }
 
-        // Processor thread: owns the terminal model, coalesces at frame cadence.
+        // Pump thread: coalesces PTY output at a cadence and broadcasts it raw.
         {
             let events = self.inner.events.clone();
             let pty = Arc::clone(&pty);
-            let app_cursor = Arc::clone(&app_cursor);
             let tick = Duration::from_millis(
                 self.inner.config.lock().rendering.frame_tick_ms.max(1) as u64,
             );
-            let cols = size.cols;
-            let rows = size.rows;
-            let scrollback = self.inner.config.lock().terminal.scrollback_lines as usize;
             thread::Builder::new()
-                .name(format!("pty-proc-{sid}"))
-                .spawn(move || {
-                    run_processor(
-                        sid, cols, rows, scrollback, tick, from_ctrl, events, pty, app_cursor,
-                    )
-                })
-                .expect("spawn processor thread");
+                .name(format!("pty-pump-{sid}"))
+                .spawn(move || run_pump(sid, tick, from_ctrl, events, pty))
+                .expect("spawn pump thread");
         }
 
         let session = Session {
@@ -181,8 +172,6 @@ impl Core {
             writer: Arc::new(Mutex::new(Box::new(writer))),
             to_proc,
             app_cursor,
-            cols: size.cols,
-            rows: size.rows,
         };
         self.inner.sessions.lock().insert(sid, session);
 
@@ -235,28 +224,31 @@ impl Core {
         Ok(())
     }
 
-    /// Resize a session (both the ConPTY and the grid model).
-    pub fn resize(&self, session: SessionId, size: ResizeEvent) -> Result<()> {
-        let mut sessions = self.inner.sessions.lock();
-        let s = sessions
-            .get_mut(&session)
-            .ok_or(CoreError::NoSession(session))?;
-        let cols = size.cols.max(1);
-        let rows = size.rows.max(1);
-        s.pty.lock().resize(PtySize { cols, rows })?;
-        s.cols = cols;
-        s.rows = rows;
-        let _ = s.to_proc.send(Msg::Resize { cols, rows });
-        Ok(())
+    /// Write UI text/keystroke bytes to a session's PTY. xterm.js already encodes
+    /// keys into the correct escape sequences, so the frontend sends that string
+    /// here verbatim.
+    pub fn write_text(&self, session: SessionId, data: &str) -> Result<()> {
+        self.write(session, data.as_bytes())
     }
 
-    /// Ask a session to re-emit a full frame (e.g. after the UI reattaches).
-    pub fn request_full_frame(&self, session: SessionId) -> Result<()> {
+    /// Resize a session (both the ConPTY and the grid model).
+    pub fn resize(&self, session: SessionId, size: ResizeEvent) -> Result<()> {
         let sessions = self.inner.sessions.lock();
         let s = sessions
             .get(&session)
             .ok_or(CoreError::NoSession(session))?;
-        let _ = s.to_proc.send(Msg::RequestFull);
+        let cols = size.cols.max(1);
+        let rows = size.rows.max(1);
+        s.pty.lock().resize(PtySize { cols, rows })?;
+        Ok(())
+    }
+
+    /// Kept for API compatibility. With an external VT engine the frontend owns
+    /// the screen buffer, so there is no full frame to re-request — this is a
+    /// no-op beyond validating the session exists.
+    pub fn request_full_frame(&self, session: SessionId) -> Result<()> {
+        let sessions = self.inner.sessions.lock();
+        sessions.get(&session).ok_or(CoreError::NoSession(session))?;
         Ok(())
     }
 
@@ -280,71 +272,37 @@ impl Core {
     }
 }
 
-#[allow(clippy::too_many_arguments)]
-fn run_processor(
+/// Coalesce PTY output at `tick` cadence and broadcast it as base64 `Output`
+/// events. Bursts collapse into a single event so a flood (`cat huge.log`)
+/// doesn't spam the IPC channel.
+fn run_pump(
     sid: SessionId,
-    cols: u16,
-    rows: u16,
-    scrollback: usize,
     tick: Duration,
     rx: Receiver<Msg>,
     events: broadcast::Sender<CoreEvent>,
     pty: Arc<Mutex<Pty>>,
-    app_cursor: Arc<AtomicBool>,
 ) {
-    let mut term = Terminal::new(cols, rows, scrollback);
-    let mut force_full = true; // first frame paints the whole screen
-    let mut eof = false;
-
+    let b64 = base64::engine::general_purpose::STANDARD;
     loop {
-        // Block up to one tick for the first message, then drain the backlog so
-        // a burst of output collapses into a single frame.
-        let mut batch: Vec<Msg> = Vec::new();
+        let mut buf: Vec<u8> = Vec::new();
+        let mut eof = false;
+
         match rx.recv_timeout(tick) {
-            Ok(m) => batch.push(m),
+            Ok(Msg::Bytes(b)) => buf.extend_from_slice(&b),
+            Ok(Msg::Eof) | Ok(Msg::Shutdown) => eof = true,
             Err(crossbeam_channel::RecvTimeoutError::Timeout) => {}
             Err(crossbeam_channel::RecvTimeoutError::Disconnected) => break,
         }
         while let Ok(m) = rx.try_recv() {
-            batch.push(m);
-        }
-
-        for m in batch {
             match m {
-                Msg::Bytes(b) => term.feed(&b),
-                Msg::Resize { cols, rows } => {
-                    term.resize(cols, rows);
-                    force_full = true;
-                }
-                Msg::RequestFull => force_full = true,
+                Msg::Bytes(b) => buf.extend_from_slice(&b),
                 Msg::Eof | Msg::Shutdown => eof = true,
             }
         }
 
-        for ev in term.drain_events() {
-            let mapped = match ev {
-                TermEvent::Title(t) => CoreEvent::TitleChanged {
-                    session: sid,
-                    title: t,
-                },
-                TermEvent::Cwd(c) => CoreEvent::CwdChanged {
-                    session: sid,
-                    cwd: c,
-                },
-                TermEvent::Bell => CoreEvent::Bell { session: sid },
-                TermEvent::Hyperlink(_) => continue,
-            };
-            let _ = events.send(mapped);
+        if !buf.is_empty() {
+            let _ = events.send(CoreEvent::Output { session: sid, base64: b64.encode(&buf) });
         }
-
-        app_cursor.store(term.app_cursor_keys(), Ordering::Relaxed);
-
-        if force_full || term.has_changes() {
-            let frame = term.take_frame(sid, force_full);
-            force_full = false;
-            let _ = events.send(CoreEvent::Frame(frame));
-        }
-
         if eof {
             break;
         }

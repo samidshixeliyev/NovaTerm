@@ -63,6 +63,7 @@ export interface FrameDiff {
 // Tagged union mirror of `CoreEvent` (serde `#[serde(tag = "event")]`).
 export type CoreEvent =
   | { event: "spawned"; session: SessionId; pid: number }
+  | { event: "output"; session: SessionId; base64: string }
   | { event: "frame"; session: SessionId; seq: number; cols: number; rows: number; full: boolean; scroll: ScrollRegion | null; runs: RowRun[]; cursor: CursorState; scrollback_len: number }
   | { event: "title_changed"; session: SessionId; title: string }
   | { event: "cwd_changed"; session: SessionId; cwd: string }

@@ -1,125 +1,144 @@
 import { useEffect, useRef } from "react";
-import { TerminalRenderer } from "../renderer/TerminalRenderer";
-import { registerFrameHandler, unregisterFrameHandler } from "../frames";
-import { resizeSession, sendInput, spawnSession } from "../bridge";
+import { Terminal } from "@xterm/xterm";
+import { FitAddon } from "@xterm/addon-fit";
+import { Unicode11Addon } from "@xterm/addon-unicode11";
+import { WebLinksAddon } from "@xterm/addon-web-links";
+import { WebglAddon } from "@xterm/addon-webgl";
+import "@xterm/xterm/css/xterm.css";
+
+import { closeSession, resizeSession, spawnSession, writeText } from "../bridge";
+import { registerOutput, unregisterOutput } from "../sinks";
 import { useStore, type Tab } from "../store";
-import type { InputEvent, KeyModifiers, SessionId } from "../types";
+import { toXtermTheme } from "../xtermTheme";
+import type { SessionId } from "../types";
 
-const PADDING = 10;
-const MODIFIER_KEYS = new Set(["Shift", "Control", "Alt", "Meta", "CapsLock", "Dead", "Process"]);
-
-function mods(e: React.KeyboardEvent): KeyModifiers {
-  return { ctrl: e.ctrlKey, alt: e.altKey, shift: e.shiftKey, meta: e.metaKey };
-}
+const FONT_FAMILY =
+  "'CaskaydiaCove Nerd Font Mono', 'Cascadia Code', 'JetBrains Mono', Consolas, monospace";
 
 export function TerminalView({ tab, active }: { tab: Tab; active: boolean }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const rendererRef = useRef<TerminalRenderer | null>(null);
+  const hostRef = useRef<HTMLDivElement>(null);
+  const termRef = useRef<Terminal | null>(null);
+  const fitRef = useRef<FitAddon | null>(null);
   const sessionRef = useRef<SessionId | null>(null);
   const theme = useStore((s) => s.theme);
-  const attachSession = useStore((s) => s.attachSession);
 
-  // Set up the renderer + PTY session once, when the component mounts.
   useEffect(() => {
-    const container = containerRef.current;
-    const canvas = canvasRef.current;
-    if (!container || !canvas) return;
+    const host = hostRef.current;
+    if (!host) return;
 
-    const t = theme;
-    const renderer = new TerminalRenderer(canvas, {
-      fontFamily: "Cascadia Code, Consolas, monospace",
+    const term = new Terminal({
+      fontFamily: FONT_FAMILY,
       fontSize: 14,
-      lineHeight: 1.3,
-      theme: {
-        bg: t?.ui.bg ?? "#1a1b26",
-        fg: t?.ui.fg ?? "#c0caf5",
-        cursor: t?.cursor ?? "#c0caf5",
-      },
+      lineHeight: 1.15,
+      letterSpacing: 0,
+      cursorBlink: true,
+      cursorStyle: "bar",
+      scrollback: 100_000,
+      allowProposedApi: true,
+      macOptionIsMeta: true,
+      theme: theme ? toXtermTheme(theme) : undefined,
     });
-    rendererRef.current = renderer;
+    termRef.current = term;
 
-    const w = container.clientWidth - PADDING * 2;
-    const h = container.clientHeight - PADDING * 2;
-    renderer.resizeCanvas(w, h);
-    const { cols, rows } = renderer.gridForPixels(w, h);
+    const fit = new FitAddon();
+    fitRef.current = fit;
+    term.loadAddon(fit);
+    term.loadAddon(new Unicode11Addon());
+    term.unicode.activeVersion = "11";
+    term.loadAddon(new WebLinksAddon());
+
+    term.open(host);
+
+    // Prefer the GPU (WebGL) renderer; fall back silently to DOM if unavailable.
+    try {
+      const webgl = new WebglAddon();
+      webgl.onContextLoss(() => webgl.dispose());
+      term.loadAddon(webgl);
+    } catch {
+      /* DOM renderer fallback */
+    }
+
+    const doFit = () => {
+      try {
+        fit.fit();
+      } catch {
+        /* host not measurable yet */
+      }
+    };
+    doFit();
+    // Re-fit once the bundled font is ready (metrics change after load).
+    if (document.fonts?.ready) void document.fonts.ready.then(doFit);
 
     let disposed = false;
-    spawnSession({ profileId: tab.profileId, cols, rows })
+    spawnSession({ profileId: tab.profileId, cols: term.cols, rows: term.rows })
       .then((sid) => {
-        if (disposed) return;
+        if (disposed) {
+          void closeSession(sid);
+          return;
+        }
         sessionRef.current = sid;
-        attachSession(tab.id, sid);
-        registerFrameHandler(sid, (diff) => renderer.applyFrame(diff));
+        useStore.getState().attachSession(tab.id, sid);
+        registerOutput(sid, (bytes) => term.write(bytes));
       })
-      .catch((err) => console.error("spawn failed", err));
+      .catch((err) => {
+        useStore.getState().setToast(`Failed to start shell: ${err}`);
+        term.write(`\r\n\x1b[31mFailed to start shell: ${err}\x1b[0m\r\n`);
+      });
 
-    const ro = new ResizeObserver(() => {
-      const cw = container.clientWidth - PADDING * 2;
-      const chh = container.clientHeight - PADDING * 2;
-      renderer.resizeCanvas(cw, chh);
-      const grid = renderer.gridForPixels(cw, chh);
+    const dataSub = term.onData((data) => {
       const sid = sessionRef.current;
-      if (sid) void resizeSession(sid, grid.cols, grid.rows, cw, chh);
+      if (sid) void writeText(sid, data);
     });
-    ro.observe(container);
+    const resizeSub = term.onResize(({ cols, rows }) => {
+      const sid = sessionRef.current;
+      if (sid) void resizeSession(sid, cols, rows, host.clientWidth, host.clientHeight);
+    });
+    const titleSub = term.onTitleChange((title) => {
+      const sid = sessionRef.current;
+      if (sid && title) useStore.getState().setTitle(sid, title);
+    });
+
+    const ro = new ResizeObserver(() => doFit());
+    ro.observe(host);
 
     return () => {
       disposed = true;
       ro.disconnect();
+      dataSub.dispose();
+      resizeSub.dispose();
+      titleSub.dispose();
       const sid = sessionRef.current;
-      if (sid) unregisterFrameHandler(sid);
-      renderer.dispose();
+      if (sid) unregisterOutput(sid);
+      term.dispose();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab.id]);
 
-  // React to theme changes without recreating the session.
+  // Live theme switching without recreating the session.
   useEffect(() => {
-    if (theme && rendererRef.current) {
-      rendererRef.current.setTheme({ bg: theme.ui.bg, fg: theme.ui.fg, cursor: theme.cursor });
-    }
+    if (theme && termRef.current) termRef.current.options.theme = toXtermTheme(theme);
   }, [theme]);
 
-  // Focus the active terminal so it receives keystrokes.
+  // Focus + refit when this tab becomes active.
   useEffect(() => {
-    if (active) containerRef.current?.focus();
+    if (active && termRef.current) {
+      termRef.current.focus();
+      requestAnimationFrame(() => {
+        try {
+          fitRef.current?.fit();
+        } catch {
+          /* ignore */
+        }
+      });
+    }
   }, [active]);
-
-  const onKeyDown = (e: React.KeyboardEvent) => {
-    const sid = sessionRef.current;
-    if (!sid || MODIFIER_KEYS.has(e.key)) return;
-    // Let global app shortcuts (palette, new tab) bubble.
-    if (e.ctrlKey && e.shiftKey && ["P", "T", "W"].includes(e.key.toUpperCase())) return;
-
-    e.preventDefault();
-    const event: InputEvent = { type: "key", key: e.key, mods: mods(e), text: null };
-    void sendInput(sid, event);
-  };
-
-  const onPaste = (e: React.ClipboardEvent) => {
-    const sid = sessionRef.current;
-    if (!sid) return;
-    e.preventDefault();
-    const text = e.clipboardData.getData("text");
-    if (text) void sendInput(sid, { type: "paste", text });
-  };
 
   return (
     <div
-      ref={containerRef}
-      tabIndex={0}
-      onKeyDown={onKeyDown}
-      onPaste={onPaste}
-      className="h-full w-full outline-none"
-      style={{ padding: PADDING, display: active ? "block" : "none" }}
+      className="h-full w-full"
+      style={{ padding: 8, display: active ? "block" : "none" }}
     >
-      <canvas ref={canvasRef} className="block" />
-      {tab.exited && (
-        <div className="pointer-events-none absolute bottom-10 left-1/2 -translate-x-1/2 rounded-md bg-black/60 px-3 py-1 text-sm">
-          Process exited — press Ctrl+Shift+W to close
-        </div>
-      )}
+      <div ref={hostRef} className="h-full w-full" />
     </div>
   );
 }

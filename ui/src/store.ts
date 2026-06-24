@@ -17,6 +17,7 @@ interface AppState {
   paletteOpen: boolean;
   themes: Theme[];
   theme: Theme | null;
+  toast: string | null;
 
   addTab: (profileId?: string) => string;
   attachSession: (tabId: string, sessionId: SessionId) => void;
@@ -29,6 +30,7 @@ interface AppState {
   setPalette: (open: boolean) => void;
   setThemes: (themes: Theme[]) => void;
   setTheme: (id: string) => void;
+  setToast: (msg: string | null) => void;
 }
 
 let tabCounter = 0;
@@ -39,6 +41,7 @@ export const useStore = create<AppState>((set, get) => ({
   paletteOpen: false,
   themes: [],
   theme: null,
+  toast: null,
 
   addTab: (profileId) => {
     const id = `tab-${++tabCounter}`;
@@ -83,6 +86,8 @@ export const useStore = create<AppState>((set, get) => ({
     if (theme) applyThemeToCss(theme);
     set({ theme });
   },
+
+  setToast: (toast) => set({ toast }),
 }));
 
 /** Push a theme's colors into the CSS custom properties consumed by the UI. */

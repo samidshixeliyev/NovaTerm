@@ -39,6 +39,7 @@ serde_json = "1"
 
 # Terminal
 vte = "0.13"
+base64 = "0.22"
 
 # Error / logging
 thiserror = "1"

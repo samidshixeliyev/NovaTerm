@@ -11,9 +11,9 @@ workspace = true
 [dependencies]
 nova-protocol = { workspace = true }
 nova-pty = { workspace = true }
-nova-terminal = { workspace = true }
 nova-config = { workspace = true }
 crossbeam-channel = { workspace = true }
+base64 = { workspace = true }
 parking_lot = { workspace = true }
 tokio = { workspace = true }
 thiserror = { workspace = true }
