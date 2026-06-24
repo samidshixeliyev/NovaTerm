@@ -87,6 +87,33 @@ fn default_profile(state: State<Core>) -> String {
     state.default_profile()
 }
 
+/// Relaunch NovaTerm elevated (UAC prompt), then exit this instance.
+#[cfg(windows)]
+#[tauri::command]
+fn relaunch_elevated(app: tauri::AppHandle) -> Result<(), String> {
+    use windows::core::HSTRING;
+    use windows::Win32::Foundation::HWND;
+    use windows::Win32::UI::Shell::ShellExecuteW;
+    use windows::Win32::UI::WindowsAndMessaging::SW_SHOWNORMAL;
+
+    let exe = std::env::current_exe().map_err(|e| e.to_string())?;
+    let exe = HSTRING::from(exe.as_os_str());
+    let verb = HSTRING::from("runas");
+    let result = unsafe { ShellExecuteW(HWND::default(), &verb, &exe, None, None, SW_SHOWNORMAL) };
+    // ShellExecuteW returns >32 on success; <=32 means failure (e.g. UAC declined).
+    if result.0 as isize <= 32 {
+        return Err("elevation was cancelled or failed".into());
+    }
+    app.exit(0);
+    Ok(())
+}
+
+#[cfg(not(windows))]
+#[tauri::command]
+fn relaunch_elevated() -> Result<(), String> {
+    Err("elevation is only supported on Windows".into())
+}
+
 fn main() {
     tracing_subscriber::fmt()
         .with_env_filter(
@@ -135,6 +162,7 @@ fn main() {
             list_themes,
             list_profiles,
             default_profile,
+            relaunch_elevated,
         ])
         .run(tauri::generate_context!())
         .expect("error while running NovaTerm");

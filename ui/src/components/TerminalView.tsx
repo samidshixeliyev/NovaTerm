@@ -21,24 +21,49 @@ export function TerminalView({ tab, active }: { tab: Tab; active: boolean }) {
   const fitRef = useRef<FitAddon | null>(null);
   const sessionRef = useRef<SessionId | null>(null);
   const theme = useStore((s) => s.theme);
+  const fontSize = useStore((s) => s.fontSize);
+  const cursorStyle = useStore((s) => s.cursorStyle);
 
   useEffect(() => {
     const host = hostRef.current;
     if (!host) return;
+    const s0 = useStore.getState();
 
     const term = new Terminal({
       fontFamily: FONT_FAMILY,
-      fontSize: 14,
+      fontSize: s0.fontSize,
       lineHeight: 1.15,
       letterSpacing: 0,
       cursorBlink: true,
-      cursorStyle: "bar",
+      cursorStyle: s0.cursorStyle,
       scrollback: 100_000,
       allowProposedApi: true,
       macOptionIsMeta: true,
-      theme: theme ? toXtermTheme(theme) : undefined,
+      windowsPty: { backend: "conpty" },
+      theme: s0.theme ? toXtermTheme(s0.theme) : undefined,
     });
     termRef.current = term;
+
+    // Ctrl+C copies the selection (else passes through as interrupt); Ctrl+V pastes.
+    term.attachCustomKeyEventHandler((e) => {
+      if (e.type !== "keydown" || !e.ctrlKey || e.altKey) return true;
+      const k = e.key.toLowerCase();
+      if (k === "c" && term.hasSelection()) {
+        navigator.clipboard.writeText(term.getSelection()).catch(() => {});
+        return false;
+      }
+      if (k === "v") {
+        navigator.clipboard
+          .readText()
+          .then((t) => {
+            const sid = sessionRef.current;
+            if (sid && t) void writeText(sid, t);
+          })
+          .catch(() => {});
+        return false;
+      }
+      return true;
+    });
 
     const fit = new FitAddon();
     fitRef.current = fit;
@@ -118,6 +143,21 @@ export function TerminalView({ tab, active }: { tab: Tab; active: boolean }) {
   useEffect(() => {
     if (theme && termRef.current) termRef.current.options.theme = toXtermTheme(theme);
   }, [theme]);
+
+  // Live font-size / cursor-style changes from Settings.
+  useEffect(() => {
+    const t = termRef.current;
+    if (!t) return;
+    t.options.fontSize = fontSize;
+    t.options.cursorStyle = cursorStyle;
+    requestAnimationFrame(() => {
+      try {
+        fitRef.current?.fit();
+      } catch {
+        /* ignore */
+      }
+    });
+  }, [fontSize, cursorStyle]);
 
   // Focus + refit when this tab becomes active.
   useEffect(() => {

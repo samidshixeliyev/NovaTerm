@@ -25,3 +25,4 @@ tracing-subscriber = { workspace = true }
 
 [target.'cfg(windows)'.dependencies]
 window-vibrancy = "0.5"
+windows = { workspace = true, features = ["Win32_Foundation", "Win32_UI_Shell", "Win32_UI_WindowsAndMessaging"] }

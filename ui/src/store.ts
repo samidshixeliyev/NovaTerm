@@ -19,9 +19,18 @@ interface AppState {
   theme: Theme | null;
   toast: string | null;
   profiles: Profile[];
+  // settings
+  settingsOpen: boolean;
+  fontSize: number;
+  cursorStyle: "bar" | "block" | "underline";
+  defaultProfileId: string | null;
 
   addTab: (profileId?: string, title?: string) => string;
   setProfiles: (profiles: Profile[]) => void;
+  setSettings: (open: boolean) => void;
+  setFontSize: (n: number) => void;
+  setCursorStyle: (s: "bar" | "block" | "underline") => void;
+  setDefaultProfileId: (id: string) => void;
   attachSession: (tabId: string, sessionId: SessionId) => void;
   closeTab: (tabId: string) => void;
   setActive: (tabId: string) => void;
@@ -45,6 +54,10 @@ export const useStore = create<AppState>((set, get) => ({
   theme: null,
   toast: null,
   profiles: [],
+  settingsOpen: false,
+  fontSize: Number(localStorage.getItem("nova.fontSize")) || 14,
+  cursorStyle: (localStorage.getItem("nova.cursorStyle") as "bar" | "block" | "underline") || "bar",
+  defaultProfileId: localStorage.getItem("nova.defaultProfile"),
 
   addTab: (profileId, title) => {
     const id = `tab-${++tabCounter}`;
@@ -93,6 +106,20 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   setToast: (toast) => set({ toast }),
+
+  setSettings: (settingsOpen) => set({ settingsOpen }),
+  setFontSize: (fontSize) => {
+    localStorage.setItem("nova.fontSize", String(fontSize));
+    set({ fontSize });
+  },
+  setCursorStyle: (cursorStyle) => {
+    localStorage.setItem("nova.cursorStyle", cursorStyle);
+    set({ cursorStyle });
+  },
+  setDefaultProfileId: (id) => {
+    localStorage.setItem("nova.defaultProfile", id);
+    set({ defaultProfileId: id });
+  },
 }));
 
 /** Push a theme's colors into the CSS custom properties consumed by the UI. */

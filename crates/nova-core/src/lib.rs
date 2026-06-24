@@ -114,7 +114,10 @@ impl Core {
                 .profiles
                 .resolve(params.profile_id.as_deref())
                 .ok_or(CoreError::NoProfile)?;
-            let mut cmd = CommandBuilder::new(&profile.shell).args(profile.args.clone());
+            let mut cmd = CommandBuilder::new(&profile.shell)
+                .args(profile.args.clone())
+                // Silence PowerShell's "a new release is available" update notice.
+                .env("POWERSHELL_UPDATECHECK", "Off");
             if let Some(cwd) = &params.cwd {
                 cmd = cmd.cwd(cwd);
             }
@@ -260,7 +263,9 @@ impl Core {
     /// no-op beyond validating the session exists.
     pub fn request_full_frame(&self, session: SessionId) -> Result<()> {
         let sessions = self.inner.sessions.lock();
-        sessions.get(&session).ok_or(CoreError::NoSession(session))?;
+        sessions
+            .get(&session)
+            .ok_or(CoreError::NoSession(session))?;
         Ok(())
     }
 
@@ -313,7 +318,10 @@ fn run_pump(
         }
 
         if !buf.is_empty() {
-            let _ = events.send(CoreEvent::Output { session: sid, base64: b64.encode(&buf) });
+            let _ = events.send(CoreEvent::Output {
+                session: sid,
+                base64: b64.encode(&buf),
+            });
         }
         if eof {
             break;

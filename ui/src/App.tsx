@@ -4,7 +4,8 @@ import { Tabs } from "./components/Tabs";
 import { StatusBar } from "./components/StatusBar";
 import { TerminalView } from "./components/TerminalView";
 import { CommandPalette, type PaletteAction } from "./components/CommandPalette";
-import { closeSession, defaultProfile, listProfiles, listThemes, onCoreEvent } from "./bridge";
+import { Settings } from "./components/Settings";
+import { closeSession, defaultProfile, listProfiles, listThemes, onCoreEvent, relaunchElevated } from "./bridge";
 import { dispatchOutput } from "./sinks";
 import { applyThemeToCss, useStore } from "./store";
 
@@ -69,8 +70,14 @@ export default function App() {
     };
   }, []);
 
-  const newTab = (profileId?: string, name?: string) =>
-    useStore.getState().addTab(profileId, name);
+  const newTab = (profileId?: string, name?: string) => {
+    const st = useStore.getState();
+    if (!profileId && st.defaultProfileId) {
+      const p = st.profiles.find((x) => x.id === st.defaultProfileId);
+      return st.addTab(p?.id, p?.name);
+    }
+    return st.addTab(profileId, name);
+  };
 
   const closeTab = (id: string) => {
     const tab = useStore.getState().tabs.find((t) => t.id === id);
@@ -81,6 +88,11 @@ export default function App() {
   // Global shortcuts.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (e.ctrlKey && !e.shiftKey && e.key === ",") {
+        e.preventDefault();
+        useStore.getState().setSettings(true);
+        return;
+      }
       if (e.ctrlKey && e.shiftKey) {
         const k = e.key.toUpperCase();
         if (k === "P") {
@@ -102,7 +114,7 @@ export default function App() {
 
   const actions: PaletteAction[] = useMemo(() => {
     const base: PaletteAction[] = [
-      { id: "tab.new", title: "New Tab", hint: "Ctrl+Shift+T", run: newTab },
+      { id: "tab.new", title: "New Tab", hint: "Ctrl+Shift+T", run: () => newTab() },
       {
         id: "tab.close",
         title: "Close Tab",
@@ -111,6 +123,12 @@ export default function App() {
           const id = useStore.getState().activeTabId;
           if (id) closeTab(id);
         },
+      },
+      { id: "settings.open", title: "Settings", hint: "Ctrl+,", run: () => useStore.getState().setSettings(true) },
+      {
+        id: "admin",
+        title: "Run as Administrator",
+        run: () => relaunchElevated().catch((e) => useStore.getState().setToast(`Run as admin failed: ${e}`)),
       },
     ];
     const profileActions: PaletteAction[] = profiles.map((p) => ({
@@ -138,6 +156,7 @@ export default function App() {
           </div>
         ))}
         <CommandPalette actions={actions} />
+        <Settings />
         <Toast />
       </div>
       <StatusBar />

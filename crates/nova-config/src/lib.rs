@@ -134,7 +134,7 @@ impl Default for Rendering {
         Rendering {
             backend: "auto".into(),
             max_fps: 240,
-            frame_tick_ms: 8,
+            frame_tick_ms: 3,
         }
     }
 }
@@ -178,7 +178,7 @@ impl Default for Profiles {
                     id: "pwsh".into(),
                     name: "PowerShell".into(),
                     shell: "pwsh.exe".into(),
-                    args: vec![],
+                    args: vec!["-NoLogo".into()],
                     icon: None,
                     color: None,
                 },
@@ -186,7 +186,7 @@ impl Default for Profiles {
                     id: "powershell".into(),
                     name: "Windows PowerShell".into(),
                     shell: "powershell.exe".into(),
-                    args: vec![],
+                    args: vec!["-NoLogo".into()],
                     icon: None,
                     color: None,
                 },

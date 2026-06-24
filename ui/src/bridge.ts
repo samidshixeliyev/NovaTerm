@@ -60,6 +60,11 @@ export async function defaultProfile(): Promise<string> {
   return invoke<string>("default_profile");
 }
 
+/// Relaunch NovaTerm elevated (UAC prompt); this instance exits on success.
+export async function relaunchElevated(): Promise<void> {
+  await invoke("relaunch_elevated");
+}
+
 /** Subscribe to the core event stream. Returns an unlisten function. */
 export async function onCoreEvent(handler: (ev: CoreEvent) => void): Promise<UnlistenFn> {
   return listen<CoreEvent>("core-event", (e) => handler(e.payload));
