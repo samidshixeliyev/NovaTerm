@@ -3,7 +3,7 @@
 
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import type { CoreEvent, InputEvent, SessionId, Theme } from "./types";
+import type { CoreEvent, InputEvent, Profile, SessionId, Theme } from "./types";
 
 export interface SpawnOptions {
   profileId?: string;
@@ -50,6 +50,14 @@ export async function requestFullFrame(session: SessionId): Promise<void> {
 
 export async function listThemes(): Promise<Theme[]> {
   return invoke<Theme[]>("list_themes");
+}
+
+export async function listProfiles(): Promise<Profile[]> {
+  return invoke<Profile[]>("list_profiles");
+}
+
+export async function defaultProfile(): Promise<string> {
+  return invoke<string>("default_profile");
 }
 
 /** Subscribe to the core event stream. Returns an unlisten function. */

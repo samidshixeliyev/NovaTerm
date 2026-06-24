@@ -94,6 +94,18 @@ impl Core {
         *self.inner.config.lock() = config;
     }
 
+    /// The configured shell profiles (for the UI's new-tab picker).
+    #[must_use]
+    pub fn profiles(&self) -> Vec<nova_config::Profile> {
+        self.inner.config.lock().profiles.list.clone()
+    }
+
+    /// The id of the default profile.
+    #[must_use]
+    pub fn default_profile(&self) -> String {
+        self.inner.config.lock().profiles.default.clone()
+    }
+
     /// Spawn a new session per `params`, returning its id.
     pub fn spawn(&self, params: SpawnParams) -> Result<SessionId> {
         let cmd = {

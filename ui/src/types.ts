@@ -93,6 +93,15 @@ export interface ThemeColorsUi {
   tab_inactive: string;
 }
 
+export interface Profile {
+  id: string;
+  name: string;
+  shell: string;
+  args: string[];
+  icon: string | null;
+  color: string | null;
+}
+
 export interface Theme {
   id: string;
   name: string;

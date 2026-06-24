@@ -1,10 +1,19 @@
+import { useState } from "react";
 import { useStore } from "../store";
 
-export function Tabs({ onNewTab, onCloseTab }: { onNewTab: () => void; onCloseTab: (id: string) => void }) {
+export function Tabs({
+  onNewTab,
+  onCloseTab,
+}: {
+  onNewTab: (profileId?: string, name?: string) => void;
+  onCloseTab: (id: string) => void;
+}) {
   const tabs = useStore((s) => s.tabs);
   const activeTabId = useStore((s) => s.activeTabId);
   const setActive = useStore((s) => s.setActive);
   const togglePinned = useStore((s) => s.togglePinned);
+  const profiles = useStore((s) => s.profiles);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   return (
     <div className="drag-region flex h-10 items-center gap-1 border-b border-nova-border/60 px-2">
@@ -39,13 +48,47 @@ export function Tabs({ onNewTab, onCloseTab }: { onNewTab: () => void; onCloseTa
             </div>
           );
         })}
-        <button
-          onClick={onNewTab}
-          className="grid h-8 w-8 place-items-center rounded-lg text-lg text-nova-fg/60 hover:bg-nova-tabInactive hover:text-nova-fg"
-          title="New tab (Ctrl+Shift+T)"
-        >
-          +
-        </button>
+
+        {/* New-tab split button: click opens the default shell; caret picks one. */}
+        <div className="relative flex items-center">
+          <button
+            onClick={() => onNewTab()}
+            className="grid h-8 w-8 place-items-center rounded-l-lg text-lg text-nova-fg/60 hover:bg-nova-tabInactive hover:text-nova-fg"
+            title="New tab (Ctrl+Shift+T)"
+          >
+            +
+          </button>
+          <button
+            onClick={() => setMenuOpen((v) => !v)}
+            className="grid h-8 w-5 place-items-center rounded-r-lg text-[10px] text-nova-fg/50 hover:bg-nova-tabInactive hover:text-nova-fg"
+            title="Choose a shell"
+          >
+            ▾
+          </button>
+          {menuOpen && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
+              <div className="absolute left-0 top-9 z-50 min-w-[12rem] overflow-hidden rounded-lg border border-nova-border bg-nova-tabActive py-1 shadow-2xl animate-scale-in">
+                {profiles.length === 0 && (
+                  <div className="px-3 py-2 text-xs text-nova-fg/40">No profiles</div>
+                )}
+                {profiles.map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => {
+                      setMenuOpen(false);
+                      onNewTab(p.id, p.name);
+                    }}
+                    className="flex w-full items-center justify-between px-3 py-1.5 text-left text-sm hover:bg-nova-accent/20"
+                  >
+                    <span>{p.name}</span>
+                    <span className="ml-4 text-xs text-nova-fg/40">{p.shell}</span>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -4,7 +4,7 @@ import { Tabs } from "./components/Tabs";
 import { StatusBar } from "./components/StatusBar";
 import { TerminalView } from "./components/TerminalView";
 import { CommandPalette, type PaletteAction } from "./components/CommandPalette";
-import { closeSession, listThemes, onCoreEvent } from "./bridge";
+import { closeSession, defaultProfile, listProfiles, listThemes, onCoreEvent } from "./bridge";
 import { dispatchOutput } from "./sinks";
 import { applyThemeToCss, useStore } from "./store";
 
@@ -12,8 +12,9 @@ export default function App() {
   const tabs = useStore((s) => s.tabs);
   const activeTabId = useStore((s) => s.activeTabId);
   const themes = useStore((s) => s.themes);
+  const profiles = useStore((s) => s.profiles);
 
-  // One-time: load themes, subscribe to core events, open the first tab.
+  // One-time: load themes + profiles, subscribe to core events, open first tab.
   useEffect(() => {
     const s = useStore.getState();
 
@@ -27,6 +28,19 @@ export default function App() {
         }
       })
       .catch((e) => console.error("listThemes failed", e));
+
+    // Load shell profiles, then open the first tab with the default profile.
+    Promise.all([listProfiles(), defaultProfile()])
+      .then(([profs, def]) => {
+        s.setProfiles(profs);
+        if (useStore.getState().tabs.length === 0) {
+          const p = profs.find((x) => x.id === def) ?? profs[0];
+          s.addTab(p?.id, p?.name);
+        }
+      })
+      .catch(() => {
+        if (useStore.getState().tabs.length === 0) s.addTab();
+      });
 
     const unlistenPromise = onCoreEvent((ev) => {
       switch (ev.event) {
@@ -50,14 +64,13 @@ export default function App() {
       }
     });
 
-    if (s.tabs.length === 0) s.addTab();
-
     return () => {
       void unlistenPromise.then((un) => un());
     };
   }, []);
 
-  const newTab = () => useStore.getState().addTab();
+  const newTab = (profileId?: string, name?: string) =>
+    useStore.getState().addTab(profileId, name);
 
   const closeTab = (id: string) => {
     const tab = useStore.getState().tabs.find((t) => t.id === id);
@@ -100,13 +113,19 @@ export default function App() {
         },
       },
     ];
+    const profileActions: PaletteAction[] = profiles.map((p) => ({
+      id: `tab.new.${p.id}`,
+      title: `New Tab: ${p.name}`,
+      hint: p.shell,
+      run: () => newTab(p.id, p.name),
+    }));
     const themeActions: PaletteAction[] = themes.map((t) => ({
       id: `theme.${t.id}`,
       title: `Theme: ${t.name}`,
       run: () => useStore.getState().setTheme(t.id),
     }));
-    return [...base, ...themeActions];
-  }, [themes]);
+    return [...base, ...profileActions, ...themeActions];
+  }, [themes, profiles]);
 
   return (
     <div className="flex h-full flex-col bg-nova-bg/0 text-nova-fg">

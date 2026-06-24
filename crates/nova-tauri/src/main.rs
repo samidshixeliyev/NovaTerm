@@ -77,6 +77,16 @@ fn list_themes() -> Vec<Theme> {
     builtin_themes()
 }
 
+#[tauri::command]
+fn list_profiles(state: State<Core>) -> Vec<nova_config::Profile> {
+    state.profiles()
+}
+
+#[tauri::command]
+fn default_profile(state: State<Core>) -> String {
+    state.default_profile()
+}
+
 fn main() {
     tracing_subscriber::fmt()
         .with_env_filter(
@@ -123,6 +133,8 @@ fn main() {
             close_session,
             request_full_frame,
             list_themes,
+            list_profiles,
+            default_profile,
         ])
         .run(tauri::generate_context!())
         .expect("error while running NovaTerm");

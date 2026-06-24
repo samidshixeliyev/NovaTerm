@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { SessionId, Theme } from "./types";
+import type { Profile, SessionId, Theme } from "./types";
 
 export interface Tab {
   id: string;
@@ -18,8 +18,10 @@ interface AppState {
   themes: Theme[];
   theme: Theme | null;
   toast: string | null;
+  profiles: Profile[];
 
-  addTab: (profileId?: string) => string;
+  addTab: (profileId?: string, title?: string) => string;
+  setProfiles: (profiles: Profile[]) => void;
   attachSession: (tabId: string, sessionId: SessionId) => void;
   closeTab: (tabId: string) => void;
   setActive: (tabId: string) => void;
@@ -42,13 +44,16 @@ export const useStore = create<AppState>((set, get) => ({
   themes: [],
   theme: null,
   toast: null,
+  profiles: [],
 
-  addTab: (profileId) => {
+  addTab: (profileId, title) => {
     const id = `tab-${++tabCounter}`;
-    const tab: Tab = { id, sessionId: null, title: "Shell", cwd: null, profileId, pinned: false, exited: false };
+    const tab: Tab = { id, sessionId: null, title: title ?? "Shell", cwd: null, profileId, pinned: false, exited: false };
     set((s) => ({ tabs: [...s.tabs, tab], activeTabId: id }));
     return id;
   },
+
+  setProfiles: (profiles) => set({ profiles }),
 
   attachSession: (tabId, sessionId) =>
     set((s) => ({ tabs: s.tabs.map((t) => (t.id === tabId ? { ...t, sessionId } : t)) })),
