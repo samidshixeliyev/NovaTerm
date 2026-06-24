@@ -18,3 +18,8 @@ nova-engine = { workspace = true }
 nova-value = { workspace = true }
 nova-ui = { workspace = true }
 nova-gpu = { workspace = true }
+winit = { workspace = true }
+wgpu = { workspace = true }
+pollster = { workspace = true }
+bytemuck = { workspace = true }
+ab_glyph = { workspace = true }

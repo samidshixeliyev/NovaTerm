@@ -10,3 +10,4 @@ workspace = true
 
 [dependencies]
 nova-ui = { workspace = true }
+bytemuck = { workspace = true }

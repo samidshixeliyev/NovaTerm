@@ -9,13 +9,24 @@
 //! uploads the [`nova_gpu::Instance`] buffer produced by [`frame::render_value`]
 //! — the exact path exercised here and in the tests. See `ARCHITECTURE.md §7–8`.
 
+mod atlas;
 mod frame;
+mod gui;
 
 use nova_engine::Engine;
 use nova_value::View;
 use std::io::{BufRead, Write};
 
 fn main() {
+    // GUI by default; `--repl` runs the headless text REPL (used in CI / no display).
+    if std::env::args().any(|a| a == "--repl") {
+        repl();
+    } else {
+        gui::run();
+    }
+}
+
+fn repl() {
     let mut engine = Engine::new();
     let stdout = std::io::stdout();
     let stdin = std::io::stdin();

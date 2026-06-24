@@ -18,7 +18,7 @@ use nova_ui::{Color, DrawCmd, DrawList};
 /// so it can be uploaded directly to a vertex/instance buffer (with `bytemuck`
 /// in the application).
 #[repr(C)]
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct Instance {
     /// `[x, y, w, h]` in logical pixels.
     pub rect: [f32; 4],
