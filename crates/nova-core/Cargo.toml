@@ -1,0 +1,20 @@
+[package]
+name = "nova-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Session orchestration: wires ConPTY to the terminal model and emits frame diffs."
+
+[lints]
+workspace = true
+
+[dependencies]
+nova-protocol = { workspace = true }
+nova-pty = { workspace = true }
+nova-terminal = { workspace = true }
+nova-config = { workspace = true }
+crossbeam-channel = { workspace = true }
+parking_lot = { workspace = true }
+tokio = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }

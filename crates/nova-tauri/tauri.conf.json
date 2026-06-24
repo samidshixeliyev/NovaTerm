@@ -1,0 +1,44 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "NovaTerm",
+  "version": "0.1.0",
+  "identifier": "com.novaterm.app",
+  "build": {
+    "frontendDist": "../../ui/dist",
+    "devUrl": "http://localhost:5173",
+    "beforeDevCommand": "npm --prefix ui run dev",
+    "beforeBuildCommand": ""
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "NovaTerm",
+        "width": 1180,
+        "height": 760,
+        "minWidth": 600,
+        "minHeight": 400,
+        "decorations": false,
+        "transparent": true,
+        "resizable": true,
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "icon": ["icons/icon.ico"],
+    "publisher": "NovaTerm",
+    "shortDescription": "The fastest, most beautiful terminal for Windows.",
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser",
+        "startMenuFolder": "NovaTerm",
+        "installerIcon": "icons/icon.ico"
+      }
+    }
+  }
+}

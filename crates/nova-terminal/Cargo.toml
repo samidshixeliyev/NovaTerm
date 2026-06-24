@@ -1,0 +1,18 @@
+[package]
+name = "nova-terminal"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "VTE-based terminal grid model, scrollback, and frame diffing."
+
+[lints]
+workspace = true
+
+[dependencies]
+nova-protocol = { workspace = true }
+vte = { workspace = true }
+unicode-width = "0.1"
+tracing = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }

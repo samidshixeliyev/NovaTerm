@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Default theme tokens (Tokyo Night); overridden at runtime by themeStore. */
+  --nova-bg: #1a1b26;
+  --nova-fg: #c0caf5;
+  --nova-accent: #7aa2f7;
+  --nova-border: #2a2e42;
+  --nova-tab-active: #24283b;
+  --nova-tab-inactive: #16161e;
+  --nova-font: "Cascadia Code", "Consolas", monospace;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+body {
+  /* Slightly translucent so the OS Mica/Acrylic shows through under Tauri. */
+  background: color-mix(in srgb, var(--nova-bg) 88%, transparent);
+  color: var(--nova-fg);
+  font-family: var(--nova-font);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Make the title bar draggable under Tauri. */
+.drag-region {
+  -webkit-app-region: drag;
+}
+.no-drag {
+  -webkit-app-region: no-drag;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--nova-fg) 20%, transparent);
+  border-radius: 6px;
+}

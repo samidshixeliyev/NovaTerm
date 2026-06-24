@@ -1,0 +1,30 @@
+# Rust
+/target
+**/*.rs.bk
+Cargo.lock.orig
+
+# Node
+node_modules/
+dist/
+dist-ssr/
+.vite/
+*.local
+
+# Tauri
+ui/src-tauri/target/
+
+# Editors / OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# NovaTerm data (local dev)
+*.db
+*.db-shm
+*.db-wal
+/.novaterm-data/
+
+# throwaway reference check (locked dir)
+/refcheck/
