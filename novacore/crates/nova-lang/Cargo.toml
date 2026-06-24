@@ -1,0 +1,12 @@
+[package]
+name = "nova-lang"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "NovaLang — lexer, AST, and parser for NovaCore's command language."
+
+[lints]
+workspace = true
+
+[dependencies]
+thiserror = { workspace = true }

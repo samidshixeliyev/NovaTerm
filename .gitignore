@@ -28,3 +28,6 @@ Thumbs.db
 
 # throwaway reference check (locked dir)
 /refcheck/
+
+# NovaCore build output
+novacore/target/

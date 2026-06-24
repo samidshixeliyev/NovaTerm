@@ -1,0 +1,52 @@
+# NovaCore — an engine-centric terminal platform (separate workspace from the
+# Tauri-based prototype in ../crates). NovaCore has its own command runtime,
+# language, structured-value pipeline, and a from-scratch wgpu/winit GUI.
+[workspace]
+resolver = "2"
+members = [
+    "crates/nova-value",
+    "crates/nova-lang",
+    "crates/nova-cmd",
+    "crates/nova-vfs",
+    "crates/nova-proc",
+    "crates/nova-history",
+    "crates/nova-bus",
+    "crates/nova-engine",
+    "crates/nova-ui",
+    "crates/nova-gpu",
+    "crates/nova-shell",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.80"
+license = "MIT OR Apache-2.0"
+
+[workspace.dependencies]
+nova-value = { path = "crates/nova-value" }
+nova-lang = { path = "crates/nova-lang" }
+nova-cmd = { path = "crates/nova-cmd" }
+nova-vfs = { path = "crates/nova-vfs" }
+nova-proc = { path = "crates/nova-proc" }
+nova-history = { path = "crates/nova-history" }
+nova-bus = { path = "crates/nova-bus" }
+nova-engine = { path = "crates/nova-engine" }
+nova-gpu = { path = "crates/nova-gpu" }
+nova-ui = { path = "crates/nova-ui" }
+
+thiserror = "1"
+anyhow = "1"
+parking_lot = "0.12"
+crossbeam-channel = "0.5"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tracing = "0.1"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1

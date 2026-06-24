@@ -1,0 +1,12 @@
+[package]
+name = "nova-ui"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "NovaCore UI framework: flexbox layout engine, widget tree, and value views."
+
+[lints]
+workspace = true
+
+[dependencies]
+nova-value = { workspace = true }

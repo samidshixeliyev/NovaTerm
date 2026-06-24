@@ -1,0 +1,11 @@
+[package]
+name = "nova-history"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "NovaCore command history engine (structured, searchable)."
+
+[lints]
+workspace = true
+
+[dependencies]

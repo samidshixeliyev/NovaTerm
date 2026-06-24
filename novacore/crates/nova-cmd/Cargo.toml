@@ -1,0 +1,14 @@
+[package]
+name = "nova-cmd"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "NovaCore command engine: Command trait, expression evaluator, registry, builtins."
+
+[lints]
+workspace = true
+
+[dependencies]
+nova-value = { workspace = true }
+nova-lang = { workspace = true }
+thiserror = { workspace = true }

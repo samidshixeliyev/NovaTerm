@@ -1,0 +1,20 @@
+[package]
+name = "nova-shell"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "NovaCore application — drives the engine and the structured-render pipeline."
+default-run = "novacore"
+
+[[bin]]
+name = "novacore"
+path = "src/main.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+nova-engine = { workspace = true }
+nova-value = { workspace = true }
+nova-ui = { workspace = true }
+nova-gpu = { workspace = true }

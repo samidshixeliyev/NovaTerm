@@ -1,0 +1,19 @@
+[package]
+name = "nova-engine"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "NovaCore — the runtime that ties the command engine, sessions, history, and process manager together."
+
+[lints]
+workspace = true
+
+[dependencies]
+nova-value = { workspace = true }
+nova-lang = { workspace = true }
+nova-cmd = { workspace = true }
+nova-proc = { workspace = true }
+nova-history = { workspace = true }
+nova-bus = { workspace = true }
+nova-vfs = { workspace = true }
+thiserror = { workspace = true }

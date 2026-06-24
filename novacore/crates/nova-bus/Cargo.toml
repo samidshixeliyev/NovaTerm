@@ -1,0 +1,12 @@
+[package]
+name = "nova-bus"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "NovaCore typed event bus."
+
+[lints]
+workspace = true
+
+[dependencies]
+crossbeam-channel = { workspace = true }

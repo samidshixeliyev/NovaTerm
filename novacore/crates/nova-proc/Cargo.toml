@@ -1,0 +1,14 @@
+[package]
+name = "nova-proc"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "NovaCore process manager — spawn native executables, capture structured output."
+
+[lints]
+workspace = true
+
+[dependencies]
+nova-value = { workspace = true }
+parking_lot = { workspace = true }
+thiserror = { workspace = true }

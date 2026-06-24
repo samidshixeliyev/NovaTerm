@@ -1,0 +1,12 @@
+[package]
+name = "nova-gpu"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "NovaCore GPU renderer core: DrawList -> instanced quad/glyph data + WGSL shaders."
+
+[lints]
+workspace = true
+
+[dependencies]
+nova-ui = { workspace = true }

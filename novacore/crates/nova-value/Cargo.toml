@@ -1,0 +1,11 @@
+[package]
+name = "nova-value"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "NovaCore structured value model — the spine of the data pipeline."
+
+[lints]
+workspace = true
+
+[dependencies]
