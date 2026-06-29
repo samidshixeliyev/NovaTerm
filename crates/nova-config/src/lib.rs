@@ -7,8 +7,10 @@
 
 #![forbid(unsafe_code)]
 
+mod detect;
 mod theme;
 
+pub use detect::detect_profiles;
 pub use theme::{builtin_themes, parse_hex_rgba, AnsiColors, Theme, ThemeColors};
 
 use serde::{Deserialize, Serialize};
@@ -228,6 +230,25 @@ impl Default for Profiles {
 }
 
 impl Profiles {
+    /// Build the profile list by probing the system (see [`detect_profiles`]):
+    /// only installed shells, plus one entry per installed WSL distribution.
+    /// Falls back to the static default list if detection finds nothing (keeps
+    /// the app usable on an unexpected host).
+    #[must_use]
+    pub fn detected() -> Profiles {
+        let list = detect_profiles();
+        if list.is_empty() {
+            return Profiles::default();
+        }
+        // Prefer a sensible default that actually exists.
+        let default = ["pwsh", "powershell", "cmd"]
+            .into_iter()
+            .find(|id| list.iter().any(|p| p.id == *id))
+            .map(str::to_string)
+            .unwrap_or_else(|| list[0].id.clone());
+        Profiles { default, list }
+    }
+
     /// Resolve a profile by id, or the configured default, or the first entry.
     pub fn resolve(&self, id: Option<&str>) -> Option<&Profile> {
         let want = id.unwrap_or(&self.default);

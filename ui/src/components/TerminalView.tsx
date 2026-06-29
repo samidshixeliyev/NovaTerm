@@ -173,12 +173,33 @@ export function TerminalView({ tab, active }: { tab: Tab; active: boolean }) {
     }
   }, [active]);
 
+  const restart = () => {
+    const st = useStore.getState();
+    if (tab.sessionId) void closeSession(tab.sessionId);
+    st.addTab(tab.profileId, tab.title);
+    st.closeTab(tab.id);
+  };
+
   return (
     <div
-      className="h-full w-full"
+      className="relative h-full w-full"
       style={{ padding: 8, display: active ? "block" : "none" }}
     >
       <div ref={hostRef} className="h-full w-full" />
+      {tab.exited && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center">
+          <div className="pointer-events-auto flex items-center gap-3 rounded-lg border border-nova-border bg-nova-tabActive/95 px-4 py-2 text-sm shadow-xl backdrop-blur animate-fade-in">
+            <span className="h-2 w-2 rounded-full bg-red-400" />
+            <span className="text-nova-fg/80">Process exited</span>
+            <button
+              onClick={restart}
+              className="rounded-md border border-nova-accent/40 bg-nova-accent/15 px-2.5 py-1 text-xs font-medium hover:bg-nova-accent/25"
+            >
+              Restart
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

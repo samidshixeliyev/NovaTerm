@@ -1879,11 +1879,11 @@ dependencies = [
 name = "nova-core"
 version = "0.1.0"
 dependencies = [
+ "base64 0.22.1",
  "crossbeam-channel",
  "nova-config",
  "nova-protocol",
  "nova-pty",
- "nova-terminal",
  "parking_lot",
  "thiserror 1.0.69",
  "tokio",
@@ -1935,6 +1935,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "window-vibrancy 0.5.3",
+ "windows 0.58.0",
 ]
 
 [[package]]

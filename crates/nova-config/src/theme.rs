@@ -235,6 +235,82 @@ pub fn builtin_themes() -> Vec<Theme> {
             "#e6e6e6",
             "#264f78",
         ),
+        theme(
+            "github-dark",
+            "GitHub Dark",
+            ThemeColors {
+                bg: "#0d1117".into(),
+                fg: "#c9d1d9".into(),
+                accent: "#58a6ff".into(),
+                border: "#21262d".into(),
+                tab_active: "#161b22".into(),
+                tab_inactive: "#0d1117".into(),
+            },
+            ansi!(
+                "#484f58", "#ff7b72", "#3fb950", "#d29922", "#58a6ff", "#bc8cff", "#39c5cf",
+                "#b1bac4", "#6e7681", "#ffa198", "#56d364", "#e3b341", "#79c0ff", "#d2a8ff",
+                "#56d4dd", "#f0f6fc"
+            ),
+            "#58a6ff",
+            "#264f78",
+        ),
+        theme(
+            "gruvbox",
+            "Gruvbox Dark",
+            ThemeColors {
+                bg: "#1d2021".into(),
+                fg: "#ebdbb2".into(),
+                accent: "#fabd2f".into(),
+                border: "#3c3836".into(),
+                tab_active: "#32302f".into(),
+                tab_inactive: "#1d2021".into(),
+            },
+            ansi!(
+                "#282828", "#cc241d", "#98971a", "#d79921", "#458588", "#b16286", "#689d6a",
+                "#a89984", "#928374", "#fb4934", "#b8bb26", "#fabd2f", "#83a598", "#d3869b",
+                "#8ec07c", "#ebdbb2"
+            ),
+            "#ebdbb2",
+            "#504945",
+        ),
+        theme(
+            "one-dark",
+            "One Dark",
+            ThemeColors {
+                bg: "#282c34".into(),
+                fg: "#abb2bf".into(),
+                accent: "#61afef".into(),
+                border: "#3b4048".into(),
+                tab_active: "#21252b".into(),
+                tab_inactive: "#282c34".into(),
+            },
+            ansi!(
+                "#282c34", "#e06c75", "#98c379", "#e5c07b", "#61afef", "#c678dd", "#56b6c2",
+                "#abb2bf", "#5c6370", "#e06c75", "#98c379", "#e5c07b", "#61afef", "#c678dd",
+                "#56b6c2", "#ffffff"
+            ),
+            "#61afef",
+            "#3e4451",
+        ),
+        theme(
+            "solarized-dark",
+            "Solarized Dark",
+            ThemeColors {
+                bg: "#002b36".into(),
+                fg: "#93a1a1".into(),
+                accent: "#268bd2".into(),
+                border: "#073642".into(),
+                tab_active: "#073642".into(),
+                tab_inactive: "#002b36".into(),
+            },
+            ansi!(
+                "#073642", "#dc322f", "#859900", "#b58900", "#268bd2", "#d33682", "#2aa198",
+                "#eee8d5", "#586e75", "#cb4b16", "#586e75", "#657b83", "#839496", "#6c71c4",
+                "#93a1a1", "#fdf6e3"
+            ),
+            "#93a1a1",
+            "#073642",
+        ),
     ]
 }
 

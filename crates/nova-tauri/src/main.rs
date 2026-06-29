@@ -123,7 +123,10 @@ fn main() {
         .init();
 
     // TODO(P3): load `config.json` from %APPDATA% and watch for changes.
-    let config = Config::default();
+    let mut config = Config::default();
+    // Replace the static profile list with shells actually installed on this PC
+    // (and one entry per installed WSL distro). Only available terminals show up.
+    config.profiles = nova_config::Profiles::detected();
     let (core, _rx) = Core::new(config);
 
     tauri::Builder::default()
